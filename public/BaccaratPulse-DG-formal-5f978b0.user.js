@@ -31,7 +31,7 @@
   }
 
   const RUNTIME_URL =
-    'https://baccarat-pulse-panel.onrender.com/BaccaratPulse-DG-formal-5f978b0-runtime.js';
+    'https://baccarat-pulse-dg-formal-test-5f978b0.onrender.com/BaccaratPulse-DG-formal-5f978b0-runtime.js';
 
   const LOADER_KEY =
     '__BACCARAT_PULSE_DG_FORMAL_LOADER_5F978B0_V1__';
