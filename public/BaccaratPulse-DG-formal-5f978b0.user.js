@@ -34,7 +34,7 @@
     'https://baccarat-pulse-dg-formal-test-5f978b0.onrender.com/BaccaratPulse-DG-formal-5f978b0-runtime.js';
 
   const LOADER_KEY =
-    '__BACCARAT_PULSE_DG_FORMAL_LOADER_5F978B0_V1__';
+    '__BACCARAT_PULSE_DG_LOADER_V100__';
 
   const RUNTIME_KEY =
     '__BACCARAT_PULSE_DG_FORMAL_RUNTIME_5F978B0_V1__';
