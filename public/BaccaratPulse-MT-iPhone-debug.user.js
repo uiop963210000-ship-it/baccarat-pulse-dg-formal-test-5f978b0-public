@@ -1,12 +1,13 @@
 // ==UserScript==
-// @name         Baccarat Pulse - DG Formal Loader (5f978b0 base)
+// @name         Baccarat Pulse - MT iPhone Outbound Debug Loader
 // @namespace    baccarat-pulse
-// @version      1.0.0-dg-5f978b0-candidate
-// @description  DG formal candidate based on commit-pinned 5f978b0
+// @version      1.3.0-debug
+// @description  Isolated outbound WebSocket capture debug build
 // @match        https://liu.tz6868.com/*
 // @match        https://*.tz6868.com/*
 // @match        https://new-dd-cn.ahsy114.com/*
 // @match        https://new-dd-cn.20299999.com/*
+// @include      /^https:\/\/new-dd-cn\.[^/?#]+\/.*$/
 // @match        https://gsa.ofalive99.net/*
 // @match        https://*.ofalive99.net/*
 // @run-at       document-start
@@ -14,8 +15,6 @@
 
 (function () {
   'use strict';
-  // Candidate provenance: transport/Record Probe logic originates from 5f978b0.
-
 
   // Reject unrelated documents before any DOM, timer, network, storage,
   // navigation, or WebSocket side effect occurs.
@@ -32,47 +31,125 @@
     return;
   }
 
-  // Isolate the formal candidate from any previously installed DG test UI.
-  // This removes only known diagnostic/test panels; it does not touch sockets,
-  // runtime state, or the production MT surface.
-  const LEGACY_DG_PANEL_IDS = [
-    'baccarat-pulse-dg-candidate-diagnostic-loader-panel-v100',
-    'baccarat-pulse-dg-candidate-diagnostic-panel-v100',
-    'baccarat-pulse-dg-production-candidate-panel-v200',
-    'baccarat-pulse-dg-dynamic-ai-test-panel-v100',
-    'baccarat-pulse-dg-dynamic-ai-diagnostic-panel-v100',
-    'baccarat-pulse-dg-diagnostic-panel-v100',
-    'baccarat-pulse-dg-match-test-panel-v100',
-    'baccarat-pulse-dg-dynamic-fingerprint-test-panel-v202',
-    'baccarat-pulse-dg-dynamic-match-test-panel-v100',
-    '__bp_dg_execution_probe__',
-    '__bp_loader_boot_probe__'
-  ];
-  const removeLegacyDgPanels = () => {
-    try {
-      for (const id of LEGACY_DG_PANEL_IDS) document.getElementById(id)?.remove();
-    } catch (_) {}
-  };
-  removeLegacyDgPanels();
+  // Earliest standalone execution checkpoint. Deliberately independent of
+  // body, DOMContentLoaded, storage, network, Runtime, and MT hooks.
   try {
-    const legacyPanelObserver = new MutationObserver(removeLegacyDgPanels);
-    legacyPanelObserver.observe(document.documentElement || document, { childList: true, subtree: true });
+    const installLoaderBootProbe = function () {
+      try {
+        const root = document.documentElement;
+        if (!root) return false;
+        let marker = document.getElementById('__bp_loader_boot_probe__');
+        if (!marker) {
+          marker = document.createElement('div');
+          marker.id = '__bp_loader_boot_probe__';
+          marker.textContent = 'BP LOADER BOOT';
+          marker.style.cssText = 'position:fixed;top:10px;left:10px;z-index:2147483647;background:#165dff;color:#fff;border:3px solid #b8d1ff;border-radius:10px;padding:10px 14px;font:700 16px/1.2 -apple-system,BlinkMacSystemFont,Segoe UI,sans-serif;box-shadow:0 4px 18px rgba(0,0,0,.6);';
+          root.appendChild(marker);
+        }
+        return true;
+      } catch (_) {
+        return false;
+      }
+    };
+    if (!installLoaderBootProbe()) {
+      const bootProbeStartedAt = Date.now();
+      const bootProbeTimer = setInterval(function () {
+        if (installLoaderBootProbe() || Date.now() - bootProbeStartedAt >= 5000) {
+          clearInterval(bootProbeTimer);
+        }
+      }, 25);
+    }
   } catch (_) {}
 
+  // Debug-only execution probe. It is intentionally independent of Runtime,
+  // MT/DG launch hooks, storage, and network requests. Cross-origin popup
+  // contexts can report only sanitized origin/path and boolean checkpoints to
+  // their opener; no payload or URL query/hash is transmitted.
+  const DG_EXECUTION_PROBE_MESSAGE = 'BaccaratPulseDGExecutionProbeV1';
+  const DG_EXECUTION_PROBE_MARKER_ID = '__bp_dg_execution_probe__';
+  const dgExecutionProbeLocation = () => {
+    try {
+      const url = new URL(location.href);
+      return { origin: url.origin, pathname: url.pathname || '/' };
+    } catch (_) {
+      return { origin: '', pathname: '/' };
+    }
+  };
+  const showDgExecutionProbe = detail => {
+    try {
+      const root = document.documentElement;
+      if (!root) return;
+      let marker = document.getElementById(DG_EXECUTION_PROBE_MARKER_ID);
+      if (!marker) {
+        marker = document.createElement('div');
+        marker.id = DG_EXECUTION_PROBE_MARKER_ID;
+        marker.style.cssText = 'position:fixed;right:8px;top:8px;z-index:2147483646;background:#5b2a86;color:#fff;border:2px solid #fff;border-radius:8px;padding:7px 9px;font:700 11px/1.3 -apple-system,BlinkMacSystemFont,sans-serif;white-space:pre-wrap;max-width:260px;';
+        root.appendChild(marker);
+      }
+      marker.textContent = [
+        'DG EXECUTION PROBE',
+        `LOADER IN DG: ${detail.inDg ? (detail.loader === false ? 'NO' : 'YES') : 'PENDING'}`,
+        `RUNTIME IN DG: ${detail.runtime ? 'YES' : 'PENDING'}`,
+        `DG OBSERVER INSTALLED: ${detail.observer ? 'YES' : 'PENDING'}`,
+        `DG EARLY BRIDGE INSTALLED: ${detail.earlyBridge ? 'YES' : 'PENDING'}`
+      ].join('\n');
+    } catch (_) {}
+  };
+  const sendDgExecutionProbe = detail => {
+    const inTz = (() => {
+      try {
+        const host = String(location.hostname || '').toLowerCase();
+        return host === 'tz6868.com' || host.endsWith('.tz6868.com');
+      } catch (_) { return false; }
+    })();
+    const payload = {
+      type: DG_EXECUTION_PROBE_MESSAGE,
+      detail: {
+        ...dgExecutionProbeLocation(),
+        inDg: !inTz,
+        loader: true,
+        runtime: Boolean(detail?.runtime),
+        observer: Boolean(detail?.observer),
+        earlyBridge: Boolean(detail?.earlyBridge),
+        isTop: (() => { try { return window.top === window; } catch (_) { return false; } })()
+      }
+    };
+    showDgExecutionProbe(payload.detail);
+    try {
+      if (window.opener && window.opener !== window) window.opener.postMessage(payload, '*');
+    } catch (_) {}
+  };
+  try { window.__bp_dg_execution_probe__ = true; } catch (_) {}
+  window.addEventListener('message', event => {
+    try {
+      const message = event?.data;
+      if (!message || message.type !== DG_EXECUTION_PROBE_MESSAGE || !message.detail) return;
+      const detail = {
+        inDg: Boolean(message.detail.inDg),
+        loader: Boolean(message.detail.loader),
+        runtime: Boolean(message.detail.runtime),
+        observer: Boolean(message.detail.observer),
+        earlyBridge: Boolean(message.detail.earlyBridge)
+      };
+      showDgExecutionProbe(detail);
+    } catch (_) {}
+  });
+  try { sendDgExecutionProbe({}); } catch (_) {}
+
   const RUNTIME_URL =
-    'https://baccarat-pulse-dg-formal-test-5f978b0.onrender.com/BaccaratPulse-DG-formal-5f978b0-runtime.js';
+    'https://baccarat-pulse-dg-formal-test-5f978b0.onrender.com/BaccaratPulse-MT-runtime-debug.js';
 
   const LOADER_KEY =
-    '__BACCARAT_PULSE_DG_LOADER_V100__';
+    '__BACCARAT_PULSE_LOADER_DEBUG_V130__';
 
   const RUNTIME_KEY =
-    '__BACCARAT_PULSE_DG_FORMAL_RUNTIME_5F978B0_V1__';
+    '__BACCARAT_PULSE_RUNTIME_DEBUG_V032__';
 
   const EARLY_STATE_KEY =
-    '__BP_DG_FORMAL_EARLY_WS_5F978B0_V1__';
+    '__BP_MT_EARLY_WS_DEBUG_V130__';
 
   const EARLY_EVENT_NAME =
-    'bp-dg-formal-early-ws-5f978b0-v1';
+    'bp-mt-early-ws-debug-v130';
 
   const RECORD_PROBE_SEND_EVENT = 'BaccaratPulseEarlyRecordProbeSend';
   const RECORD_PROBE_STATUS_EVENT = 'BaccaratPulseRecordProbeStatus';
@@ -1057,4 +1134,830 @@
    );
  }
   // ============================================================
+  // TZ GAME LAUNCH DEBUG
+  // ============================================================
+  const TZ_DEBUG_STORE = '__BP_TZ_GAME_LAUNCH_DEBUG__';
+  const TZ_DEBUG_EVENT = '__BP_TZ_GAME_LAUNCH_EVENT__';
+  const TZ_FRAME_MESSAGE = '__BP_TZ_GAME_LAUNCH_FRAME_EVENT__';
+  const TZ_FRAME_ID = LOADER_FRAME_ID;
+  const TZ_IS_TOP = window.top === window;
+  const TZ_FRAME_PATHNAME = (() => { try { return location.pathname || '/'; } catch (_) { return '/'; } })();
+  const TZ_FRAME_READY_STATE = document.readyState || 'loading';
+  let tzDebugButton = null;
+  let tzActiveLaunchTrace = [];
+  const TZ_TRACE_STAGES = new Set([
+    'WINDOW_OPEN_CALLED',
+    'WINDOW_OPEN_RESULT',
+    'MT_LOGIN_START',
+    'MT_OWNER_SELECTED',
+    'MT_OWNER_NO_LOCAL_POPUP',
+    'MT_LOGIN_RESPONSE',
+    'MT_GAME_URL_READY',
+    'MT_NATIVE_NAV_OK',
+    'MT_POPUP_CROSS_ORIGIN',
+    'MT_FALLBACK_NAV_ATTEMPT',
+    'MT_FALLBACK_NAV_LEFT_TZ',
+    'MT_FALLBACK_NAV_STILL_STUCK',
+    'MT_POPUP_UNAVAILABLE',
+    'MT_POPUP_CLOSED_AFTER_NAV',
+    'DG_OWNER_SELECTED',
+    'DG_OWNER_NO_LOCAL_POPUP',
+    'DG_LOGIN_START',
+    'DG_LOGIN_RESPONSE',
+    'DG_GAME_URL_READY',
+    'DG_FALLBACK_ASSIGN_START',
+    'DG_FALLBACK_ASSIGN_OK',
+    'DG_FALLBACK_ASSIGN_THROW',
+    'DG_FALLBACK_PRE_STATE',
+    'DG_FALLBACK_POST_STATE',
+    'DG_VERIFY_STATE',
+    'DG_SECOND_WINDOW_OPEN',
+    'DG_NATIVE_NAV_OK',
+    'DG_POPUP_CROSS_ORIGIN',
+    'DG_FALLBACK_NAV_ATTEMPT',
+    'DG_FALLBACK_NAV_LEFT_TZ',
+    'DG_FALLBACK_NAV_STILL_STUCK',
+    'DG_POPUP_UNAVAILABLE',
+    'DG_POPUP_CLOSED_AFTER_NAV'
+  ]);
+  const TZ_FAILURE_STAGES = new Set([
+    'MT_FALLBACK_NAV_STILL_STUCK',
+    'MT_POPUP_UNAVAILABLE',
+    'MT_POPUP_CLOSED_AFTER_NAV',
+    'DG_FALLBACK_NAV_STILL_STUCK',
+    'DG_POPUP_UNAVAILABLE',
+    'DG_POPUP_CLOSED_AFTER_NAV'
+  ]);
+  const TZ_SENSITIVE_KEY = /token|cookie|authorization|auth|session|password|member|account|phone|email|license|balance|game[_-]url|^gameUrl$|^popupRef$/i;
+
+  function sanitizeTZValue(value, key = '') {
+    if (TZ_SENSITIVE_KEY.test(String(key || ''))) return undefined;
+    if (value === null || value === undefined) return value;
+    if (typeof value === 'string') {
+      let result = value.replace(/[?#].*$/, '');
+      result = result.replace(/(bearer\s+)[^\s]+/ig, '$1[redacted]');
+      return result.slice(0, 300);
+    }
+    if (Array.isArray(value)) return value.map(item => sanitizeTZValue(item)).filter(item => item !== undefined).slice(0, 100);
+    if (typeof value === 'object') {
+      const result = {};
+      for (const [childKey, childValue] of Object.entries(value)) {
+        const safe = sanitizeTZValue(childValue, childKey);
+        if (safe !== undefined) result[childKey] = safe;
+      }
+      return result;
+    }
+    return value;
+  }
+
+  function tzDebugRead() {
+    try {
+      const raw = JSON.parse(localStorage.getItem(TZ_DEBUG_STORE) || '[]');
+      return Array.isArray(raw) ? raw.map(item => sanitizeTZValue(item) || {}).slice(-100) : [];
+    } catch (_) {
+      return [];
+    }
+  }
+
+  function tzTraceEntry(stage, detail = {}) {
+    const safe = sanitizeTZValue(detail) || {};
+    return {
+      stage: String(stage || 'UNKNOWN').slice(0, 80),
+      status: safe.status ?? null,
+      elapsed: safe.elapsed ?? safe.ms ?? null,
+      popupExists: safe.popupExists ?? null,
+      popupClosed: safe.popupClosed ?? null,
+      gameUrlExists: safe.gameUrlExists ?? safe.exists ?? null
+    };
+  }
+
+  function tzTraceText(trace) {
+    return trace.map((item, index) => {
+      const status = item.status === null || item.status === undefined ? '-' : item.status;
+      const elapsed = item.elapsed === null || item.elapsed === undefined ? '-' : item.elapsed + 'ms';
+      const popupExists = item.popupExists === null || item.popupExists === undefined ? '-' : String(Boolean(item.popupExists));
+      const popupClosed = item.popupClosed === null || item.popupClosed === undefined ? '-' : String(Boolean(item.popupClosed));
+      const gameUrlExists = item.gameUrlExists === null || item.gameUrlExists === undefined ? '-' : String(Boolean(item.gameUrlExists));
+      return `${index + 1}. ${item.stage} | status=${status} | elapsed=${elapsed} | popupExists=${popupExists} | popupClosed=${popupClosed} | gameUrlExists=${gameUrlExists}`;
+    }).join('\n');
+  }
+
+  function tzCopyText(text, targetWindow) {
+    try {
+      const clipboard = targetWindow?.navigator?.clipboard;
+      if (clipboard && typeof clipboard.writeText === 'function') {
+        const result = clipboard.writeText(text);
+        if (result && typeof result.catch === 'function') result.catch(() => {});
+        return true;
+      }
+    } catch (_) {}
+    try {
+      const doc = targetWindow.document;
+      const area = doc.createElement('textarea');
+      area.value = text;
+      area.setAttribute('readonly', 'true');
+      area.style.cssText = 'position:fixed;left:-9999px;top:0;';
+      (doc.body || doc.documentElement).appendChild(area);
+      area.select();
+      doc.execCommand('copy');
+      area.remove();
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  function showTZResultBox(trace, targetWindow = window) {
+    const safeTrace = trace.map(item => tzTraceEntry(item.stage, item));
+    const text = tzTraceText(safeTrace);
+    const failureStage = safeTrace[safeTrace.length - 1]?.stage || 'NAVIGATION_FAILURE';
+    let doc;
+    try { doc = targetWindow.document; } catch (_) { return false; }
+    const mount = () => {
+      try {
+        const parent = doc.body || doc.documentElement;
+        if (!parent) return false;
+        let box = doc.getElementById('__bp_tz_debug_result_box__');
+        if (!box) {
+          box = doc.createElement('section');
+          box.id = '__bp_tz_debug_result_box__';
+          box.style.cssText = 'position:fixed;left:10px;right:10px;top:10px;z-index:2147483647;background:#3b0710;color:#fff;border:3px solid #ff375f;border-radius:12px;padding:14px;box-shadow:0 4px 24px rgba(0,0,0,.65);font:14px/1.45 -apple-system,BlinkMacSystemFont,Segoe UI,sans-serif;';
+          parent.appendChild(box);
+        }
+        box.textContent = '';
+        const title = doc.createElement('strong');
+        title.textContent = 'Baccarat Pulse Debug：MT 導航結果';
+        title.style.cssText = 'display:block;font-size:17px;margin-bottom:8px;';
+        box.appendChild(title);
+        const status = doc.createElement('div');
+        status.textContent = '最終狀態：' + failureStage;
+        status.style.cssText = 'font-weight:bold;margin-bottom:8px;';
+        box.appendChild(status);
+        const pre = doc.createElement('pre');
+        pre.textContent = text || '目前沒有 launch trace';
+        pre.style.cssText = 'white-space:pre-wrap;word-break:break-word;max-height:42vh;overflow:auto;margin:0 0 10px;background:#21040a;padding:8px;border-radius:6px;';
+        box.appendChild(pre);
+        const copy = doc.createElement('button');
+        copy.type = 'button';
+        copy.textContent = '複製 Debug 紀錄';
+        copy.style.cssText = 'background:#fff;color:#8b1028;border:0;border-radius:8px;padding:9px 12px;font-weight:bold;';
+        copy.onclick = () => {
+          const copied = tzCopyText(text, targetWindow);
+          copy.textContent = copied ? '已複製 Debug 紀錄' : '複製失敗，請長按選取';
+        };
+        box.appendChild(copy);
+        return true;
+      } catch (_) { return false; }
+    };
+    if (mount()) return true;
+    try {
+      if (!doc.__BP_TZ_DEBUG_RESULT_PENDING__) {
+        doc.__BP_TZ_DEBUG_RESULT_PENDING__ = true;
+        doc.addEventListener('DOMContentLoaded', () => {
+          doc.__BP_TZ_DEBUG_RESULT_PENDING__ = false;
+          mount();
+        }, { once: true });
+      }
+    } catch (_) {}
+    return false;
+  }
+
+  function tzDebugLog(stage, detail = {}, fromCoordinator = false) {
+    try {
+      const stageName = String(stage || 'UNKNOWN').slice(0, 80);
+      dgLoaderContinuityObserve(stageName, detail);
+      const safeDetail = sanitizeTZValue(detail) || {};
+      const frameMeta = {
+        frameId: safeDetail.frameId || TZ_FRAME_ID,
+        isTop: safeDetail.isTop ?? TZ_IS_TOP,
+        pathname: safeDetail.pathname || TZ_FRAME_PATHNAME,
+        readyState: safeDetail.readyState || TZ_FRAME_READY_STATE
+      };
+      if (!TZ_IS_TOP && !fromCoordinator) {
+        try { window.top.postMessage({ type: TZ_FRAME_MESSAGE, detail: { stage: stageName, ...safeDetail, ...frameMeta } }, '*'); } catch (_) {}
+        return;
+      }
+      const logs = tzDebugRead();
+      const safeForStorage = { ...safeDetail, ...frameMeta };
+      logs.push({ time: new Date().toISOString(), stage: stageName, ...safeForStorage });
+      if (logs.length > 100) logs.splice(0, logs.length - 100);
+      localStorage.setItem(TZ_DEBUG_STORE, JSON.stringify(logs));
+      if (stageName === 'WINDOW_OPEN_CALLED' || stageName === 'DG_OWNER_SELECTED' || (stageName === 'MT_OWNER_SELECTED' && tzActiveLaunchTrace.some(item => item.stage === 'MT_LOGIN_START'))) tzActiveLaunchTrace = [];
+      if (TZ_TRACE_STAGES.has(stageName)) {
+        tzActiveLaunchTrace.push(tzTraceEntry(stageName, safeForStorage));
+        if (tzActiveLaunchTrace.length > 30) tzActiveLaunchTrace.splice(0, tzActiveLaunchTrace.length - 30);
+      }
+      console.log('[BP TZ DEBUG]', stageName, safeForStorage);
+      tzDebugUpdateButton();
+      if (TZ_FAILURE_STAGES.has(stageName) || stageName === 'MT_OWNER_NO_LOCAL_POPUP' || (stageName === 'MT_LOGIN_RESPONSE' && detail.ok === false)) {
+        showTZResultBox(tzActiveLaunchTrace, window);
+        try {
+          const popup = detail?.popupRef;
+          if (popup && !popup.closed) showTZResultBox(tzActiveLaunchTrace, popup);
+        } catch (_) {}
+      }
+    } catch (_) {}
+  }
+
+  if (TZ_IS_TOP) {
+    window.addEventListener('message', event => {
+      try {
+        const payload = event?.data;
+        if (!payload || payload.type !== TZ_FRAME_MESSAGE || !payload.detail) return;
+        tzDebugLog(payload.detail.stage || 'UNKNOWN', payload.detail, true);
+      } catch (_) {}
+    });
+  }
+
+  function tzDebugUpdateButton() {
+    if (!tzDebugButton) return;
+    tzDebugButton.textContent = 'TZ DEBUG (' + tzDebugRead().length + ')';
+  }
+
+  function installTZLaunchDebug() {
+    window.addEventListener(TZ_DEBUG_EVENT, event => {
+      const detail = event.detail || {};
+      tzDebugLog(detail.stage || 'UNKNOWN', detail);
+    });
+
+    const source = '(' + function (eventName, frameId, isTop, pathname, readyState) {
+      if (window.__BP_TZ_GAME_LAUNCH_HOOK__) return;
+      window.__BP_TZ_GAME_LAUNCH_HOOK__ = true;
+
+      const emit = (stage, detail = {}) => {
+        try {
+          window.dispatchEvent(new CustomEvent(eventName, { detail: { stage, frameId, isTop, pathname, readyState, ...detail } }));
+        } catch (_) {}
+      };
+      const safeUrl = value => {
+        try {
+          const u = new URL(String(value || ''), location.href);
+          return u.origin + u.pathname;
+        } catch (_) {
+          return String(value || '').split('?')[0].split('#')[0].slice(0, 300);
+        }
+      };
+      const pathnameOf = value => {
+        try { return new URL(String(value || ''), location.href).pathname || '/'; } catch (_) { return String(value || '').split('?')[0].split('#')[0]; }
+      };
+      const isLogin = value => /\/v2\/game\/[^/]+\/login/i.test(pathnameOf(value));
+      const isMtLogin = value => /^(?:\/api)?\/v2\/game\/MTLI\/login\/?$/i.test(pathnameOf(value));
+      const isDgLogin = value => /^(?:\/api)?\/v2\/game\/DGLI\/login\/?$/i.test(pathnameOf(value));
+      const popupHost = value => {
+        try { return new URL(String(value || ''), location.href).hostname.toLowerCase(); } catch (_) { return ''; }
+      };
+      const isTargetHost = host => host === 'gsa.ofalive99.net' || host.endsWith('.ofalive99.net');
+      const isTzContext = value => {
+        const raw = String(value || '');
+        if (!raw || raw === 'about:blank') return true;
+        const host = popupHost(raw);
+        return host === 'tz6868.com' || host.endsWith('.tz6868.com');
+      };
+      const popupClosed = popup => {
+        try { return !popup || Boolean(popup.closed); } catch (_) { return true; }
+      };
+      let popupIdCounter = 0;
+      const popupIds = new WeakMap();
+      const getPopupId = popup => {
+        if (!popup || (typeof popup !== 'object' && typeof popup !== 'function')) return null;
+        try {
+          if (!popupIds.has(popup)) popupIds.set(popup, ++popupIdCounter);
+          return popupIds.get(popup);
+        } catch (_) {
+          return null;
+        }
+      };
+      const observePopupState = (popup, popupId) => {
+        const closed = popupClosed(popup);
+        const base = { popupId: popupId ?? null, popupClosed: closed };
+        if (closed) return { ...base, locationRead: 'unavailable' };
+        try {
+          const href = String(popup.location.href || '');
+          const url = new URL(href, location.href);
+          return {
+            ...base,
+            locationRead: 'same-origin',
+            sameOriginTz: isTzContext(href),
+            aboutBlank: href === 'about:blank',
+            originPath: url.origin + (url.pathname || '/')
+          };
+        } catch (_) {
+          return { ...base, locationRead: 'cross-origin' };
+        }
+      };
+      const parseData = response => {
+        try {
+          if (response && response.responseType === 'json') return response.response;
+          return JSON.parse(response?.responseText || '');
+        } catch (_) { return null; }
+      };
+      const extractGameUrl = data => data?.data?.game_url || data?.game_url || '';
+      const responseCodeSuccess = data => {
+        const code = data?.code ?? data?.statusCode ?? data?.data?.code;
+        if (code === undefined || code === null || code === '') return true;
+        return code === true || ['0', '200', 'success', 'ok'].includes(String(code).toLowerCase());
+      };
+
+      let latestPopup = null;
+      let activeMtLaunch = null;
+      let activeDgLaunch = null;
+
+      const emitMtLoginStart = () => {
+        const launch = {
+          popup: latestPopup,
+          gameUrl: '',
+          fallbackAttempted: false,
+          nativeTimer: null,
+          verifyTimer: null,
+          started: performance.now()
+        };
+        activeMtLaunch = launch;
+        emit('MT_OWNER_SELECTED', {
+          status: 'owner',
+          elapsed: 0,
+          popupExists: Boolean(launch.popup),
+          popupClosed: popupClosed(launch.popup),
+          gameUrlExists: false
+        });
+        if (!launch.popup) emit('MT_OWNER_NO_LOCAL_POPUP', { popupExists: false, popupClosed: true, gameUrlExists: false });
+        emit('MT_LOGIN_START', {
+          status: 'started',
+          elapsed: 0,
+          gameUrlExists: false,
+          popupExists: Boolean(launch.popup),
+          popupClosed: popupClosed(launch.popup)
+        });
+        return launch;
+      };
+
+      const inspectNativeNavigation = (launch, afterFallback) => {
+        if (!launch || launch !== activeMtLaunch) return;
+        if (popupClosed(launch.popup)) {
+          emit(afterFallback ? 'MT_POPUP_CLOSED_AFTER_NAV' : 'MT_POPUP_UNAVAILABLE', {
+            popupExists: Boolean(launch.popup), popupClosed: true, popupRef: launch.popup
+          });
+          return;
+        }
+        let href = '';
+        try {
+          href = String(launch.popup.location.href || '');
+        } catch (_) {
+          emit('MT_POPUP_CROSS_ORIGIN', { popupExists: true, popupClosed: false });
+          return;
+        }
+        const host = popupHost(href);
+        if (isTargetHost(host)) {
+          emit(afterFallback ? 'MT_FALLBACK_NAV_LEFT_TZ' : 'MT_NATIVE_NAV_OK', { popupExists: true, popupClosed: false });
+          return;
+        }
+        if (!afterFallback && !isTzContext(href)) {
+          emit('MT_NATIVE_NAV_OK', { popupExists: true, popupClosed: false });
+          return;
+        }
+        if (!afterFallback && !launch.fallbackAttempted) {
+          launch.fallbackAttempted = true;
+          try {
+            launch.popup.location.href = launch.gameUrl;
+            emit('MT_FALLBACK_NAV_ATTEMPT', { popupExists: true, popupClosed: false });
+          } catch (_) {
+            emit('MT_FALLBACK_NAV_STILL_STUCK', { popupExists: true, popupClosed: false, popupRef: launch.popup });
+            return;
+          }
+          launch.verifyTimer = setTimeout(() => inspectNativeNavigation(launch, true), 1200);
+          return;
+        }
+        emit('MT_FALLBACK_NAV_STILL_STUCK', { popupExists: true, popupClosed: false, popupRef: launch.popup });
+      };
+
+      const handleMtLoginResponse = (launch, status, data, started) => {
+        const gameUrl = extractGameUrl(data);
+        const httpOk = Number(status) >= 200 && Number(status) < 300;
+        const ok = httpOk && responseCodeSuccess(data) && Boolean(gameUrl);
+        emit('MT_LOGIN_RESPONSE', {
+          status: Number(status || 0),
+          elapsed: Math.max(0, Math.round(performance.now() - started)),
+          gameUrlExists: Boolean(gameUrl),
+          popupExists: Boolean(launch?.popup),
+          popupClosed: popupClosed(launch?.popup),
+          ok
+        });
+        if (!ok || !launch || launch !== activeMtLaunch) return;
+        launch.gameUrl = String(gameUrl);
+        emit('MT_GAME_URL_READY', {
+          status: Number(status || 0),
+          elapsed: Math.max(0, Math.round(performance.now() - launch.started)),
+          gameUrlExists: true,
+          popupExists: Boolean(launch.popup),
+          popupClosed: popupClosed(launch.popup)
+        });
+        if (!launch.popup) {
+          emit('MT_OWNER_NO_LOCAL_POPUP', { popupExists: false, popupClosed: true, gameUrlExists: true });
+          return;
+        }
+        launch.nativeTimer = setTimeout(() => inspectNativeNavigation(launch, false), 1000);
+      };
+
+      const emitDgLoginStart = () => {
+        const launch = {
+          popup: latestPopup,
+          popupId: getPopupId(latestPopup),
+          gameUrl: '',
+          fallbackAttempted: false,
+          fallbackVerified: false,
+          nativeTimer: null,
+          verifyTimer: null,
+          started: performance.now()
+        };
+        activeDgLaunch = launch;
+        emit('DG_OWNER_SELECTED', {
+          status: 'owner',
+          elapsed: 0,
+          popupId: launch.popupId,
+          popupExists: Boolean(launch.popup),
+          popupClosed: popupClosed(launch.popup),
+          gameUrlExists: false
+        });
+        if (!launch.popup) emit('DG_OWNER_NO_LOCAL_POPUP', { popupExists: false, popupClosed: true, gameUrlExists: false });
+        emit('DG_LOGIN_START', {
+          status: 'started',
+          elapsed: 0,
+          gameUrlExists: false,
+          popupExists: Boolean(launch.popup),
+          popupClosed: popupClosed(launch.popup)
+        });
+        return launch;
+      };
+
+      const inspectDgNavigation = (launch, afterFallback) => {
+        if (!launch || launch !== activeDgLaunch) return;
+        if (afterFallback) launch.fallbackVerified = true;
+        if (popupClosed(launch.popup)) {
+          if (afterFallback) emit('DG_VERIFY_STATE', {
+            ...observePopupState(launch.popup, launch.popupId),
+            phase: 'after-fallback'
+          });
+          emit(afterFallback ? 'DG_POPUP_CLOSED_AFTER_NAV' : 'DG_POPUP_UNAVAILABLE', {
+            popupId: launch.popupId,
+            popupExists: Boolean(launch.popup), popupClosed: true
+          });
+          return;
+        }
+        if (afterFallback) emit('DG_VERIFY_STATE', {
+          ...observePopupState(launch.popup, launch.popupId),
+          phase: 'after-fallback'
+        });
+        let href = '';
+        try {
+          href = String(launch.popup.location.href || '');
+        } catch (_) {
+          emit('DG_POPUP_CROSS_ORIGIN', { popupExists: true, popupClosed: false });
+          return;
+        }
+        if (!isTzContext(href)) {
+          emit(afterFallback ? 'DG_FALLBACK_NAV_LEFT_TZ' : 'DG_NATIVE_NAV_OK', { popupExists: true, popupClosed: false });
+          return;
+        }
+        if (!afterFallback && !launch.fallbackAttempted) {
+          launch.fallbackAttempted = true;
+          const elapsed = Math.max(0, Math.round(performance.now() - launch.started));
+          emit('DG_FALLBACK_ASSIGN_START', {
+            popupId: launch.popupId,
+            popupExists: Boolean(launch.popup),
+            popupClosed: popupClosed(launch.popup),
+            elapsed,
+            attemptNumber: 1
+          });
+          emit('DG_FALLBACK_PRE_STATE', {
+            ...observePopupState(launch.popup, launch.popupId),
+            elapsed
+          });
+          try {
+            launch.popup.location.href = launch.gameUrl;
+            emit('DG_FALLBACK_ASSIGN_OK', {
+              popupId: launch.popupId,
+              popupExists: Boolean(launch.popup),
+              popupClosed: popupClosed(launch.popup),
+              elapsed: Math.max(0, Math.round(performance.now() - launch.started)),
+              attemptNumber: 1
+            });
+            emit('DG_FALLBACK_POST_STATE', {
+              ...observePopupState(launch.popup, launch.popupId),
+              elapsed: Math.max(0, Math.round(performance.now() - launch.started))
+            });
+            emit('DG_FALLBACK_NAV_ATTEMPT', { popupId: launch.popupId, popupExists: true, popupClosed: false });
+          } catch (_) {
+            launch.fallbackVerified = true;
+            emit('DG_FALLBACK_ASSIGN_THROW', {
+              popupId: launch.popupId,
+              popupExists: Boolean(launch.popup),
+              popupClosed: popupClosed(launch.popup),
+              elapsed: Math.max(0, Math.round(performance.now() - launch.started)),
+              attemptNumber: 1
+            });
+            emit('DG_FALLBACK_NAV_STILL_STUCK', { popupId: launch.popupId, popupExists: true, popupClosed: false });
+            return;
+          }
+          launch.verifyTimer = setTimeout(() => inspectDgNavigation(launch, true), 1200);
+          return;
+        }
+        emit('DG_FALLBACK_NAV_STILL_STUCK', { popupId: launch.popupId, popupExists: true, popupClosed: false });
+      };
+
+      const handleDgLoginResponse = (launch, status, data, started) => {
+        const gameUrl = extractGameUrl(data);
+        const httpOk = Number(status) >= 200 && Number(status) < 300;
+        const ok = httpOk && responseCodeSuccess(data) && Boolean(gameUrl);
+        emit('DG_LOGIN_RESPONSE', {
+          status: Number(status || 0),
+          elapsed: Math.max(0, Math.round(performance.now() - started)),
+          gameUrlExists: Boolean(gameUrl),
+          popupExists: Boolean(launch?.popup),
+          popupClosed: popupClosed(launch?.popup),
+          ok
+        });
+        if (!ok || !launch || launch !== activeDgLaunch) return;
+        launch.gameUrl = String(gameUrl);
+        emit('DG_GAME_URL_READY', {
+          status: Number(status || 0),
+          elapsed: Math.max(0, Math.round(performance.now() - launch.started)),
+          gameUrlExists: true,
+          popupExists: Boolean(launch.popup),
+          popupClosed: popupClosed(launch.popup)
+        });
+        if (!launch.popup) {
+          emit('DG_POPUP_UNAVAILABLE', { popupExists: false, popupClosed: true, gameUrlExists: true });
+          return;
+        }
+        launch.nativeTimer = setTimeout(() => inspectDgNavigation(launch, false), 1000);
+      };
+
+      // ----------------------------
+      // window.open: observe only; bind the popup to MT at MTLI login time.
+      // ----------------------------
+      try {
+        const nativeWindowOpen = window.open;
+        window.open = function (...args) {
+          emit('WINDOW_OPEN_CALLED', { url: safeUrl(args[0] || '') });
+          try {
+            const popup = nativeWindowOpen.apply(this, args);
+            if (popup) {
+              latestPopup = popup;
+              const newPopupId = getPopupId(popup);
+              emit('WINDOW_OPEN_RESULT', { popupCreated: true, popupId: newPopupId, popupRef: popup });
+              if (activeDgLaunch && !activeDgLaunch.fallbackVerified) {
+                emit('DG_SECOND_WINDOW_OPEN', {
+                  originalPopupId: activeDgLaunch.popupId,
+                  newPopupId,
+                  elapsed: Math.max(0, Math.round(performance.now() - activeDgLaunch.started))
+                });
+              }
+            } else {
+              emit('WINDOW_OPEN_RESULT', { popupCreated: false });
+            }
+            return popup;
+          } catch (error) {
+            emit('WINDOW_OPEN_ERROR', { error: String(error?.message || error) });
+            throw error;
+          }
+        };
+      } catch (error) {
+        emit('WINDOW_OPEN_HOOK_ERROR', { error: String(error?.message || error) });
+      }
+
+      // ----------------------------
+      // fetch: observe login responses; only MTLI can arm fallback.
+      // ----------------------------
+      try {
+        const nativeFetch = window.fetch;
+        if (typeof nativeFetch === 'function') {
+          window.fetch = function (input, init) {
+            const url = typeof input === 'string' ? input : input?.url;
+            if (!isLogin(url)) return nativeFetch.apply(this, arguments);
+            const mt = isMtLogin(url);
+            const dg = isDgLogin(url);
+            const started = performance.now();
+            const launch = mt ? emitMtLoginStart() : dg ? emitDgLoginStart() : null;
+            emit(mt ? 'LOGIN_FETCH_START' : 'LOGIN_FETCH_START', { url: safeUrl(url) });
+            return nativeFetch.apply(this, arguments).then(async response => {
+              let data = null;
+              try { data = await response.clone().json(); } catch (_) {}
+              emit('LOGIN_FETCH_RESPONSE', { status: response.status, ok: response.ok, ms: Math.round(performance.now() - started) });
+              if (mt) handleMtLoginResponse(launch, response.status, data, started);
+              else if (dg) handleDgLoginResponse(launch, response.status, data, started);
+              else emit('GAME_URL_RESULT', { exists: Boolean(extractGameUrl(data)), url: '' });
+              return response;
+            }).catch(error => {
+              emit('LOGIN_FETCH_ERROR', { error: String(error?.message || error), ms: Math.round(performance.now() - started) });
+              throw error;
+            });
+          };
+        }
+      } catch (error) {
+        emit('FETCH_HOOK_ERROR', { error: String(error?.message || error) });
+      }
+
+      // ----------------------------
+      // XMLHttpRequest/Axios: observe MTLI without changing response or navigation.
+      // ----------------------------
+      try {
+        const XHR = window.XMLHttpRequest;
+        if (XHR) {
+          const nativeOpen = XHR.prototype.open;
+          const nativeSend = XHR.prototype.send;
+          XHR.prototype.open = function (method, url) {
+            this.__BP_TZ_LOGIN__ = isLogin(url);
+            this.__BP_TZ_MT_LOGIN__ = isMtLogin(url);
+            this.__BP_TZ_DG_LOGIN__ = isDgLogin(url);
+            this.__BP_TZ_LOGIN_URL__ = safeUrl(url);
+            return nativeOpen.apply(this, arguments);
+          };
+          XHR.prototype.send = function () {
+            if (!this.__BP_TZ_LOGIN__) return nativeSend.apply(this, arguments);
+            const xhr = this;
+            const started = performance.now();
+            const mt = Boolean(xhr.__BP_TZ_MT_LOGIN__);
+            const dg = Boolean(xhr.__BP_TZ_DG_LOGIN__);
+            const launch = mt ? emitMtLoginStart() : dg ? emitDgLoginStart() : null;
+            emit('LOGIN_XHR_START', { url: xhr.__BP_TZ_LOGIN_URL__ });
+            xhr.addEventListener('load', function () {
+              const data = parseData(xhr);
+              emit('LOGIN_XHR_RESPONSE', { status: Number(xhr.status || 0), ms: Math.round(performance.now() - started) });
+              if (mt) handleMtLoginResponse(launch, xhr.status, data, started);
+              else if (dg) handleDgLoginResponse(launch, xhr.status, data, started);
+              else emit('GAME_URL_RESULT', { exists: Boolean(extractGameUrl(data)), url: '' });
+            }, { once: true });
+            xhr.addEventListener('error', () => emit('LOGIN_XHR_ERROR', { status: Number(xhr.status || 0), ms: Math.round(performance.now() - started) }), { once: true });
+            xhr.addEventListener('timeout', () => emit('LOGIN_XHR_TIMEOUT', { status: Number(xhr.status || 0), ms: Math.round(performance.now() - started) }), { once: true });
+            xhr.addEventListener('abort', () => emit('LOGIN_XHR_ABORT', { status: Number(xhr.status || 0), ms: Math.round(performance.now() - started) }), { once: true });
+            return nativeSend.apply(this, arguments);
+          };
+        }
+      } catch (error) {
+        emit('XHR_HOOK_ERROR', { error: String(error?.message || error) });
+      }
+
+      emit('TZ_HOOK_READY', { page: safeUrl(location.href) });
+    } + ')(' + [JSON.stringify(TZ_DEBUG_EVENT), JSON.stringify(TZ_FRAME_ID), String(TZ_IS_TOP), JSON.stringify(TZ_FRAME_PATHNAME), JSON.stringify(TZ_FRAME_READY_STATE)].join(',') + ');';
+
+    try {
+      const script = document.createElement('script');
+      script.textContent = source;
+      (document.documentElement || document.head || document.body).appendChild(script);
+      script.remove();
+      tzDebugLog('TZ_DEBUG_INSTALLED');
+      tzDebugLog('FRAME_HOOK_READY', { frameId: TZ_FRAME_ID, isTop: TZ_IS_TOP, pathname: TZ_FRAME_PATHNAME, readyState: document.readyState || TZ_FRAME_READY_STATE });
+    } catch (error) {
+      tzDebugLog('TZ_DEBUG_INSTALL_ERROR', { error: String(error?.message || error) });
+    }
+  }
+
+  function tzDebugExportObject(recordGenerated = false) {
+    if (recordGenerated && dgLoaderContinuityState.role === 'launcher') {
+      dgCanonicalOwnerRecord('EXPORT_GENERATED', {
+        registryEntryCount: dgCanonicalOwnerState.registry.size
+      });
+    }
+    const legacyLog = tzDebugRead();
+    const exportObject = {
+      version: TZ_DEBUG_EXPORT_VERSION,
+      exportedAt: new Date().toISOString(),
+      loaderInstanceId: dgLoaderContinuityState.loaderInstanceId,
+      role: dgLoaderContinuityState.role,
+      frameId: TZ_FRAME_ID,
+      dgLoaderContinuity: dgLoaderContinuitySnapshot(),
+      canonicalOwner: dgCanonicalOwnerExport(),
+      legacyLog
+    };
+    return exportObject;
+  }
+
+  function tzDebugExportText(recordGenerated = false) {
+    return JSON.stringify(tzDebugExportObject(recordGenerated), null, 2);
+  }
+
+  function tzDebugDownload() {
+    try {
+      const text = tzDebugExportText(true);
+      const blob = new Blob([text], { type: 'application/json;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'TZ-Debug-Canonical-Owner.json';
+      link.style.display = 'none';
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  function createTZDebugButton() {
+    if (!document.body) return;
+    const existingButton = document.getElementById('__bp_tz_debug_button__');
+    if (existingButton) {
+      try { existingButton.remove(); } catch (_) {}
+    }
+    const existingOverlay = document.getElementById('__bp_tz_debug_overlay__');
+    if (existingOverlay) {
+      try { existingOverlay.remove(); } catch (_) {}
+    }
+    if (!document.getElementById('__bp_tz_hook_active__')) {
+      const active = document.createElement('div');
+      active.id = '__bp_tz_hook_active__';
+      active.textContent = 'BP TZ HOOK ACTIVE';
+      active.style.cssText = 'position:fixed;left:10px;bottom:75px;z-index:2147483647;background:#0a7a35;color:#fff;border:2px solid #8ff0b5;border-radius:18px;padding:8px 12px;font-size:13px;font-weight:bold;box-shadow:0 3px 14px rgba(0,0,0,.45);';
+      document.body.appendChild(active);
+    }
+    tzDebugButton = document.createElement('button');
+    tzDebugButton.id = '__bp_tz_debug_button__';
+    tzDebugButton.dataset.bpLoaderInstanceId = dgLoaderContinuityState.loaderInstanceId;
+    tzDebugButton.dataset.bpDebugVersion = TZ_DEBUG_EXPORT_VERSION;
+    tzDebugButton.style.cssText = 'position:fixed;right:10px;bottom:75px;z-index:2147483647;background:#ff2d55;color:white;border:0;border-radius:20px;padding:10px 14px;font-size:13px;font-weight:bold;';
+    tzDebugButton.onclick = function () {
+      const fullText = tzDebugExportText(false);
+      const existing = document.getElementById('__bp_tz_debug_overlay__');
+      if (existing) {
+        const existingText = existing.querySelector('textarea');
+        if (existingText) existingText.value = fullText;
+        return;
+      }
+
+      const overlay = document.createElement('div');
+      overlay.id = '__bp_tz_debug_overlay__';
+      overlay.style.cssText = 'position:fixed;inset:5vh 5vw;z-index:2147483647;background:#111;color:#fff;border:3px solid #ff2d55;border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:10px;box-shadow:0 6px 30px rgba(0,0,0,.7);';
+
+      const title = document.createElement('div');
+      title.textContent = 'TZ DEBUG 完整紀錄';
+      title.style.cssText = 'font-size:16px;font-weight:bold;flex:0 0 auto;';
+
+      const textarea = document.createElement('textarea');
+      textarea.value = fullText;
+      textarea.readOnly = true;
+      textarea.setAttribute('readonly', 'readonly');
+      textarea.style.cssText = 'width:90vw;max-width:100%;height:65vh;box-sizing:border-box;resize:none;overflow:auto;display:block;background:#000;color:#fff;border:1px solid #aaa;border-radius:6px;padding:8px;font:12px/1.4 ui-monospace,SFMono-Regular,Menlo,monospace;white-space:pre;';
+
+      const actions = document.createElement('div');
+      actions.style.cssText = 'display:flex;gap:8px;flex:0 0 auto;';
+
+      const copyButton = document.createElement('button');
+      copyButton.textContent = '複製完整 Debug';
+      copyButton.style.cssText = 'background:#0a7a35;color:#fff;border:0;border-radius:6px;padding:10px 12px;font-weight:bold;';
+      copyButton.onclick = function () {
+        const copyFallback = function () {
+          textarea.focus();
+          textarea.select();
+          try { document.execCommand('copy'); } catch (_) {}
+        };
+        if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+          navigator.clipboard.writeText(fullText).catch(copyFallback);
+        } else {
+          copyFallback();
+        }
+      };
+
+      const downloadButton = document.createElement('button');
+      downloadButton.textContent = '下載完整 Debug';
+      downloadButton.style.cssText = 'background:#1565c0;color:#fff;border:0;border-radius:6px;padding:10px 12px;font-weight:bold;';
+      downloadButton.onclick = function () {
+        const downloaded = tzDebugDownload();
+        downloadButton.textContent = downloaded ? '已下載完整 Debug' : '下載失敗';
+      };
+
+      const closeButton = document.createElement('button');
+      closeButton.textContent = '關閉';
+      closeButton.style.cssText = 'background:#555;color:#fff;border:0;border-radius:6px;padding:10px 12px;font-weight:bold;';
+      closeButton.onclick = function () { overlay.remove(); };
+
+      actions.appendChild(copyButton);
+      actions.appendChild(downloadButton);
+      actions.appendChild(closeButton);
+      overlay.appendChild(title);
+      overlay.appendChild(textarea);
+      overlay.appendChild(actions);
+      document.body.appendChild(overlay);
+    };
+    document.body.appendChild(tzDebugButton);
+    tzDebugUpdateButton();
+  }
+
+  try { installTZLaunchDebug(); } catch (error) { tzDebugLog('TZ_DEBUG_FATAL', { error: String(error?.message || error) }); }
+
+  if (TZ_IS_TOP) {
+    const startTZDebugUI = function () {
+      createTZDebugButton();
+      setInterval(function () {
+        if (!document.body) return;
+        if (!document.getElementById('__bp_tz_debug_button__')) {
+          tzDebugButton = null;
+          createTZDebugButton();
+        }
+      }, 1500);
+    };
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', startTZDebugUI, { once: true });
+    else startTZDebugUI();
+  }
+
 })();

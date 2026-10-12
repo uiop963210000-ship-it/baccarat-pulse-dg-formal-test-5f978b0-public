@@ -1,13 +1,11 @@
 (function () {
   'use strict';
-  // Candidate provenance: DG transport/model chain is sourced from 5f978b0.
 
-
-  if (window.__BACCARAT_PULSE_DG_FORMAL_RUNTIME_5F978B0_V1__) {
+  if (window.__BACCARAT_PULSE_RUNTIME_DEBUG_V032__) {
     return;
   }
 
-  window.__BACCARAT_PULSE_DG_FORMAL_RUNTIME_5F978B0_V1__ = true;
+  window.__BACCARAT_PULSE_RUNTIME_DEBUG_V032__ = true;
 
   let isTopWindow = false;
   try {
@@ -18,12 +16,12 @@
 
   // Only the top-level browsing context owns the visible panel and license
   // bootstrap. Child frames remain capture-only and relay rounds upward.
-  const UI_OWNER_KEY = '__BACCARAT_PULSE_DG_FORMAL_UI_OWNER_5F978B0_V1__';
+  const UI_OWNER_KEY = '__BACCARAT_PULSE_UI_OWNER_V032__';
   if (isTopWindow) {
     window[UI_OWNER_KEY] = true;
   }
 
-  const EVENT_NAME = 'bp-dg-formal-ws-runtime-5f978b0-v1';
+  const EVENT_NAME = 'bp-mt-iphone-ws-runtime-debug-v030';
   const SOCKET_DIAGNOSTICS_EVENT = 'BaccaratPulseSocketDiagnostics';
   const RECORD_PROBE_SEND_EVENT = 'BaccaratPulseRecordProbeSend';
   const EARLY_RECORD_PROBE_SEND_EVENT = 'BaccaratPulseEarlyRecordProbeSend';
@@ -34,8 +32,8 @@
   const DG_SOCKET_INSTANCE_MESSAGE = 'BaccaratPulseDgSocketInstanceDebugV1';
   const SOCKET_DIAGNOSTICS_REQUEST = 'BaccaratPulseSocketDiagnosticsRequest';
   const SOCKET_DIAGNOSTICS_RESPONSE = 'BaccaratPulseSocketDiagnosticsResponse';
-  const EARLY_EVENT_NAME = 'bp-dg-formal-early-ws-5f978b0-v1';
-  const EARLY_STATE_KEY = '__BP_DG_FORMAL_EARLY_WS_5F978B0_V1__';
+  const EARLY_EVENT_NAME = 'bp-mt-early-ws-debug-v130';
+  const EARLY_STATE_KEY = '__BP_MT_EARLY_WS_DEBUG_V130__';
   const TABLE_CLICK_MESSAGE =
     'BACCARAT_PULSE_LOBBY_GAMEDESK_CLICK_DEBUG_V1';
   const TABLE_CLICK_ACK_MESSAGE =
@@ -76,6 +74,8 @@
     'BACCARAT_PULSE_DG_DATA_PROBE_RECORD_DEBUG_V1';
   const DG_ROAD_CANVAS_TEXT_EVENT =
     'BaccaratPulseDgRoadCanvasTextDebugV1';
+  const DG_EXECUTION_PROBE_MESSAGE =
+    'BaccaratPulseDGExecutionProbeV1';
   const DISCOVERY_FRAME_ID =
     `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
@@ -189,6 +189,26 @@
     historicalHydrationIdKey: null,
     historicalHydrationSequence: 0,
     historicalHydrationTrace: [],
+    dragon: {
+      signature: null,
+      generation: 0,
+      status: 'WAIT',
+      probability: null,
+      count: 0,
+      seed: 20260920,
+      usedCards: 0,
+      remainingCards: 416,
+      remainingCounts: null,
+      byMargin: { 5: 0, 6: 0, 7: 0, 8: 0, 9: 0 },
+      error: null
+    },
+    pair: {
+      signature: null,
+      probability: null,
+      status: 'WAIT',
+      generation: 0,
+      error: null
+    },
     dg: {
       tableName: null,
       tableId: null,
@@ -2119,6 +2139,35 @@
         .forEach(node => {
           if (node !== panel) node.remove();
         });
+      const buttonGroup = panel.querySelector('#bp-export-record-probe-diagnostics')?.parentElement || panel;
+      if (!panel.querySelector('#bp-export-room-entry-bootstrap')) {
+        const button = document.createElement('button');
+        button.id = 'bp-export-room-entry-bootstrap';
+        button.type = 'button';
+        button.textContent = 'Export Room Entry Bootstrap Capture';
+        button.style.cssText = 'width:100%;margin-top:6px;padding:7px;border:1px solid #456278;border-radius:7px;background:#172b3b;color:#cfe7f5;font-weight:800;cursor:pointer';
+        buttonGroup.appendChild(button);
+        button.addEventListener('click', exportRoomEntryBootstrapCapture);
+      }
+      if (!panel.querySelector('#bp-export-socket-diagnostics')) {
+        const button = document.createElement('button');
+        button.id = 'bp-export-socket-diagnostics';
+        button.type = 'button';
+        button.textContent = 'Export WebSocket Diagnostics';
+        button.style.cssText = 'width:100%;margin-top:6px;padding:7px;border:1px solid #456278;border-radius:7px;background:#172b3b;color:#cfe7f5;font-weight:800;cursor:pointer';
+        buttonGroup.appendChild(button);
+        button.addEventListener('click', exportSocketDiagnostics);
+      }
+      if (!panel.querySelector('#bp-export-inbound-game-packets')) {
+        const button = document.createElement('button');
+        button.id = 'bp-export-inbound-game-packets';
+        button.type = 'button';
+        button.textContent = 'Export Inbound Game Packets';
+        button.style.cssText = 'width:100%;margin-top:6px;padding:7px;border:1px solid #456278;border-radius:7px;background:#172b3b;color:#cfe7f5;font-weight:800;cursor:pointer';
+        buttonGroup.appendChild(button);
+        button.addEventListener('click', exportInboundGamePackets);
+      }
+      addDgDataDebugButton(buttonGroup);
       return;
     }
 
@@ -2531,6 +2580,27 @@
           </div>
         </div>
 
+        <div class="bp-section" id="bp-dragon-section">
+          <div class="bp-row">
+            <b>龍寶 5+</b>
+            <span>
+              <span id="bp-dragon-probability" class="bp-badge bp-wait-badge">N/A</span>
+              <span id="bp-dragon-tier" class="bp-muted" style="margin-left:4px;font-size:10px"></span>
+            </span>
+          </div>
+          <div id="bp-dragon-detail" class="bp-muted" style="font-size:9px;line-height:1.55;margin-top:5px">方向：等待<br>模擬次數：100,000<br>已出牌：— ｜ 剩餘牌：—</div>
+        </div>
+
+        <div class="bp-section" id="bp-pair-section" style="padding-top:5px;padding-bottom:5px">
+          <div class="bp-row">
+            <b>對子</b>
+            <span>
+              <span id="bp-pair-probability" class="bp-badge bp-wait-badge">N/A</span>
+              <span id="bp-pair-tier" class="bp-muted" style="margin-left:4px;font-size:10px"></span>
+            </span>
+          </div>
+        </div>
+
         <div class="bp-section">
           <div class="bp-row">
             <b>
@@ -2604,6 +2674,58 @@
           </div>
         </div>
 
+        <div
+          class="bp-section"
+          id="bp-outbound-debug-section"
+          style="display:none"
+        >
+          <div class="bp-row">
+            <b>Outbound Debug Capture</b>
+            <span id="bp-outbound-count" class="bp-muted">0 packets</span>
+          </div>
+          <div class="bp-muted" style="font-size:9px;line-height:1.5">
+            activeTableId: <span id="bp-active-table">—</span><br>
+            activeTableSource: <span id="bp-active-source">—</span><br>
+            ignoredForeignTablePackets: <span id="bp-ignored-foreign">0</span>
+          </div>
+          <button id="bp-export-outbound" type="button" style="width:100%;padding:7px;border:1px solid #456278;border-radius:7px;background:#172b3b;color:#cfe7f5;font-weight:800;cursor:pointer">
+            Export Debug Capture
+          </button>
+          <button id="bp-export-table-list" type="button" style="width:100%;margin-top:6px;padding:7px;border:1px solid #456278;border-radius:7px;background:#172b3b;color:#cfe7f5;font-weight:800;cursor:pointer">
+            Export Table List Mapping
+          </button>
+          <button id="bp-export-handshake" type="button" style="width:100%;margin-top:6px;padding:7px;border:1px solid #456278;border-radius:7px;background:#172b3b;color:#cfe7f5;font-weight:800;cursor:pointer">
+            Export Active Table Handshake
+          </button>
+          <button id="bp-export-history" type="button" style="width:100%;margin-top:6px;padding:7px;border:1px solid #456278;border-radius:7px;background:#172b3b;color:#cfe7f5;font-weight:800;cursor:pointer">
+            Export History Capture
+          </button>
+          <button id="bp-export-record-probe" type="button" style="width:100%;margin-top:6px;padding:7px;border:1px solid #456278;border-radius:7px;background:#172b3b;color:#cfe7f5;font-weight:800;cursor:pointer">
+            Export Record Probe
+          </button>
+          <button id="bp-export-live-result-trace" type="button" style="width:100%;margin-top:6px;padding:7px;border:1px solid #456278;border-radius:7px;background:#172b3b;color:#cfe7f5;font-weight:800;cursor:pointer">
+            Export Live Result Trace
+          </button>
+          <button id="bp-export-bootstrap" type="button" style="width:100%;margin-top:6px;padding:7px;border:1px solid #456278;border-radius:7px;background:#172b3b;color:#cfe7f5;font-weight:800;cursor:pointer">
+            Export Active Table Bootstrap
+          </button>
+          <button id="bp-export-record-probe-diagnostics" type="button" style="width:100%;margin-top:6px;padding:7px;border:1px solid #456278;border-radius:7px;background:#172b3b;color:#cfe7f5;font-weight:800;cursor:pointer">
+            Export Record Probe Diagnostics
+          </button>
+          <button id="bp-export-room-entry-bootstrap" type="button" style="width:100%;margin-top:6px;padding:7px;border:1px solid #456278;border-radius:7px;background:#172b3b;color:#cfe7f5;font-weight:800;cursor:pointer">
+            Export Room Entry Bootstrap Capture
+          </button>
+          <button id="bp-export-socket-diagnostics" type="button" style="width:100%;margin-top:6px;padding:7px;border:1px solid #456278;border-radius:7px;background:#172b3b;color:#cfe7f5;font-weight:800;cursor:pointer">
+            Export WebSocket Diagnostics
+          </button>
+          <button id="bp-export-inbound-game-packets" type="button" style="width:100%;margin-top:6px;padding:7px;border:1px solid #456278;border-radius:7px;background:#172b3b;color:#cfe7f5;font-weight:800;cursor:pointer">
+            Export Inbound Game Packets
+          </button>
+          <button id="bp-dg-data-debug" type="button" style="width:100%;margin-top:6px;padding:7px;border:1px solid #456278;border-radius:7px;background:#172b3b;color:#cfe7f5;font-weight:800;cursor:pointer">
+            DG DATA DEBUG
+          </button>
+        </div>
+
         <div class="bp-footer">
           防重複計數
           <span class="bp-ok">
@@ -2619,32 +2741,32 @@
     ).appendChild(panel);
 
     const exportButton = panel.querySelector('#bp-export-outbound');
-    exportButton?.addEventListener('click', exportOutboundCapture);
+    exportButton.addEventListener('click', exportOutboundCapture);
 
     const tableListButton = panel.querySelector('#bp-export-table-list');
-    tableListButton?.addEventListener('click', exportTableListMapping);
+    tableListButton.addEventListener('click', exportTableListMapping);
 
     const handshakeButton = panel.querySelector('#bp-export-handshake');
-    handshakeButton?.addEventListener('click', exportActiveTableHandshake);
+    handshakeButton.addEventListener('click', exportActiveTableHandshake);
 
     const historyButton = panel.querySelector('#bp-export-history');
-    historyButton?.addEventListener('click', exportHistoryCapture);
+    historyButton.addEventListener('click', exportHistoryCapture);
     const recordProbeButton = panel.querySelector('#bp-export-record-probe');
-    recordProbeButton?.addEventListener('click', runAndExportRecordProbe);
+    recordProbeButton.addEventListener('click', runAndExportRecordProbe);
     const liveResultTraceButton = panel.querySelector('#bp-export-live-result-trace');
-    liveResultTraceButton?.addEventListener('click', exportLiveResultTrace);
+    liveResultTraceButton.addEventListener('click', exportLiveResultTrace);
     const bootstrapButton = panel.querySelector('#bp-export-bootstrap');
-    bootstrapButton?.addEventListener('click', exportActiveTableBootstrap);
+    bootstrapButton.addEventListener('click', exportActiveTableBootstrap);
     const recordProbeDiagnosticsButton = panel.querySelector('#bp-export-record-probe-diagnostics');
-    recordProbeDiagnosticsButton?.addEventListener('click', exportRecordProbeDiagnostics);
+    recordProbeDiagnosticsButton.addEventListener('click', exportRecordProbeDiagnostics);
     const roomEntryButton = panel.querySelector('#bp-export-room-entry-bootstrap');
-    roomEntryButton?.addEventListener('click', exportRoomEntryBootstrapCapture);
+    roomEntryButton.addEventListener('click', exportRoomEntryBootstrapCapture);
     const socketDiagnosticsButton = panel.querySelector('#bp-export-socket-diagnostics');
-    socketDiagnosticsButton?.addEventListener('click', exportSocketDiagnostics);
+    socketDiagnosticsButton.addEventListener('click', exportSocketDiagnostics);
     const inboundPacketsButton = panel.querySelector('#bp-export-inbound-game-packets');
-    inboundPacketsButton?.addEventListener('click', exportInboundGamePackets);
+    inboundPacketsButton.addEventListener('click', exportInboundGamePackets);
     const dgDataDebugButton = panel.querySelector('#bp-dg-data-debug');
-    dgDataDebugButton?.addEventListener('click', showDgDataDebugOverlay);
+    dgDataDebugButton.addEventListener('click', showDgDataDebugOverlay);
 
     const toggle =
       panel.querySelector('#bp-toggle');
@@ -2843,11 +2965,15 @@
             : 'bp-zero-count'
       );
 
-    { const el = panel.querySelector('#bp-outbound-count'); if (el) el.textContent = `${state.outboundCapture.length} packets`; }
+    panel.querySelector('#bp-outbound-count').textContent =
+      `${state.outboundCapture.length} packets`;
 
-    { const el = panel.querySelector('#bp-active-table'); if (el) el.textContent = state.activeTableId ?? '—'; }
-    { const el = panel.querySelector('#bp-active-source'); if (el) el.textContent = state.activeTableSource ?? '—'; }
-    { const el = panel.querySelector('#bp-ignored-foreign'); if (el) el.textContent = String(state.ignoredForeignTablePackets); }
+    panel.querySelector('#bp-active-table').textContent =
+      state.activeTableId ?? '—';
+    panel.querySelector('#bp-active-source').textContent =
+      state.activeTableSource ?? '—';
+    panel.querySelector('#bp-ignored-foreign').textContent =
+      String(state.ignoredForeignTablePackets);
 
     panel.querySelector(
       '#bp-total'
@@ -2993,10 +3119,314 @@
     ).textContent =
       `${stats.banker} 次`;
 
+    updateDragonUi();
+    scheduleDragonAnalysis();
+    updatePairUi();
+    schedulePairAnalysis();
   }
 
 
-  function directionDisplayLabel(direction) { return direction === 'PLAYER' ? '閒' : direction === 'BANKER' ? '莊' : '等待'; }
+  const PAIR_TIER_THRESHOLDS = [0.1453, 0.1464, 0.1494];
+
+  function pairCompletedRoundCount() {
+    const currentRound = Number(state.lastRound);
+    if (!Number.isFinite(currentRound)) return 0;
+    return [...state.rounds.values()].filter(item => {
+      const round = Number(item?.round);
+      return Number.isInteger(round) && round < currentRound;
+    }).length;
+  }
+
+  function pairTierThresholds() {
+    return PAIR_TIER_THRESHOLDS;
+  }
+
+  function getPairTier(probability, completedRounds = pairCompletedRoundCount()) {
+    const value = Number(probability);
+    if (!Number.isFinite(value)) return '';
+    const thresholds = pairTierThresholds(completedRounds);
+    if (value < thresholds[0]) return '一般';
+    if (value < thresholds[1]) return '偏高';
+    if (value < thresholds[2]) return '很高';
+    return '極高';
+  }
+
+  function pairExactProbability(remainingCounts) {
+    const counts = DRAGON_RANKS.map(rank => Number(remainingCounts[rank] || 0));
+    const total = counts.reduce((sum, value) => sum + value, 0);
+    if (total < 4 || counts.some(value => !Number.isInteger(value) || value < 0)) {
+      throw new Error('invalid remaining rank counts for Any Pair');
+    }
+    const denominator = total * (total - 1) * (total - 2) * (total - 3);
+    let noPair = 0;
+    for (let p1 = 0; p1 < counts.length; p1 += 1) {
+      if (counts[p1] <= 0) continue;
+      for (let b1 = 0; b1 < counts.length; b1 += 1) {
+        const afterB1 = counts[b1] - (p1 === b1 ? 1 : 0);
+        if (afterB1 <= 0) continue;
+        const after = counts.slice();
+        after[p1] -= 1;
+        after[b1] -= 1;
+        const remainingAfterInitial = total - 2;
+        const p2Eligible = remainingAfterInitial - after[p1];
+        const b2Eligible = remainingAfterInitial - 1 - after[b1];
+        const sharedCorrection = p1 !== b1 ? after[b1] : 0;
+        noPair += counts[p1] * afterB1 * (p2Eligible * b2Eligible + sharedCorrection);
+      }
+    }
+    return (denominator - noPair) / denominator;
+  }
+
+  function pairBuildSnapshot() {
+    const snapshot = dragonBuildSnapshot();
+    return {
+      table: snapshot.table,
+      shoe: snapshot.shoe,
+      rounds: snapshot.rounds,
+      signature: JSON.stringify({ table: snapshot.table, shoe: snapshot.shoe, rounds: snapshot.rounds })
+    };
+  }
+
+  function updatePairUi() {
+    if (!panel) return;
+    const probabilityEl = panel.querySelector('#bp-pair-probability');
+    const tierEl = panel.querySelector('#bp-pair-tier');
+    if (!probabilityEl || !tierEl) return;
+    const pair = state.pair;
+    const ready = pair.status === 'READY' && pair.probability !== null;
+    probabilityEl.textContent = ready ? `${(pair.probability * 100).toFixed(2)}%` : 'N/A';
+    tierEl.textContent = ready ? getPairTier(pair.probability, pairCompletedRoundCount()) : '';
+    probabilityEl.className = `bp-badge ${ready ? 'bp-player-badge' : 'bp-wait-badge'}`;
+  }
+
+  function schedulePairAnalysis() {
+    const snapshot = pairBuildSnapshot();
+    if (!snapshot.table || !Number.isFinite(snapshot.shoe)) {
+      state.pair = { ...state.pair, signature: null, status: 'WAIT', probability: null, error: null };
+      updatePairUi();
+      return;
+    }
+    if (snapshot.signature === state.pair.signature) return;
+    const generation = state.pair.generation + 1;
+    state.pair = { ...state.pair, signature: snapshot.signature, generation, status: 'RUNNING', probability: null, error: null };
+    try {
+      const counts = dragonComputeCounts(snapshot);
+      const probability = pairExactProbability(counts.remainingCounts);
+      if (generation !== state.pair.generation || snapshot.signature !== state.pair.signature) return;
+      state.pair.probability = probability;
+      state.pair.status = 'READY';
+      updatePairUi();
+    } catch (error) {
+      state.pair.status = 'ERROR';
+      state.pair.error = String(error?.message || error);
+      updatePairUi();
+    }
+  }
+
+  // =====================================================
+  // Dragon 5+ Probability — rank-count model only
+  // =====================================================
+
+  const DRAGON_RANKS = ['A','2','3','4','5','6','7','8','9','10','J','Q','K'];
+  const DRAGON_DEFAULT_COUNT = 100000;
+  const DRAGON_SEED = 20260920;
+
+  function getDragonTier(direction, probability) {
+    if (
+      direction !== 'PLAYER' &&
+      direction !== 'BANKER'
+    ) {
+      return '';
+    }
+    if (probability === null || probability === undefined) {
+      return '';
+    }
+    const value = Number(probability);
+    if (!Number.isFinite(value)) {
+      return '';
+    }
+    const thresholds = direction === 'PLAYER'
+      ? [0.092, 0.094, 0.096]
+      : [0.082, 0.084, 0.086];
+    if (value < thresholds[0]) return '一般';
+    if (value < thresholds[1]) return '偏高';
+    if (value < thresholds[2]) return '很高';
+    return '極高';
+  }
+
+  function dragonRankFromCardId(cardId) {
+    const id = Number(cardId);
+    if (!Number.isInteger(id) || id <= 0) throw new Error(`invalid card id: ${cardId}`);
+    return DRAGON_RANKS[(id - 1) % 13];
+  }
+
+  function dragonRankValue(rank) {
+    const r = String(rank).toUpperCase();
+    if (r === 'A') return 1;
+    if (/^[2-9]$/.test(r)) return Number(r);
+    if (['10','J','Q','K'].includes(r)) return 0;
+    throw new Error(`invalid baccarat rank: ${rank}`);
+  }
+
+  function dragonCreateSeededRng(seed) {
+    let value = Number(seed) >>> 0;
+    return () => {
+      value = (value + 0x6D2B79F5) >>> 0;
+      let t = value;
+      t = Math.imul(t ^ (t >>> 15), t | 1);
+      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+
+  function dragonTotal(cards) {
+    return cards.reduce((sum, rank) => (sum + dragonRankValue(rank)) % 10, 0);
+  }
+
+  function dragonDrawRank(counts, rng) {
+    const total = Object.values(counts).reduce((sum, value) => sum + value, 0);
+    if (total <= 0) throw new Error('remaining rank shoe exhausted');
+    let cursor = Math.floor(rng() * total);
+    for (const rank of DRAGON_RANKS) {
+      cursor -= counts[rank];
+      if (cursor < 0) {
+        counts[rank] -= 1;
+        return rank;
+      }
+    }
+    throw new Error('rank draw failed');
+  }
+
+  function dragonBankerShouldDraw(total, playerThirdValue = null) {
+    if (playerThirdValue == null) return total <= 5;
+    return total <= 2 || (total === 3 && playerThirdValue !== 8) || (total === 4 && playerThirdValue >= 2 && playerThirdValue <= 7) || (total === 5 && playerThirdValue >= 4 && playerThirdValue <= 7) || (total === 6 && playerThirdValue >= 6 && playerThirdValue <= 7);
+  }
+
+  function dragonSimulateRoundExact(remainingCounts, rng) {
+    const counts = { ...remainingCounts };
+    // Baccarat initial deal is interleaved: P1, B1, P2, B2.
+    const p1 = dragonDrawRank(counts, rng);
+    const b1 = dragonDrawRank(counts, rng);
+    const p2 = dragonDrawRank(counts, rng);
+    const b2 = dragonDrawRank(counts, rng);
+    const player = [p1, p2];
+    const banker = [b1, b2];
+    const initialPlayer = dragonTotal(player);
+    const initialBanker = dragonTotal(banker);
+    const natural = initialPlayer >= 8 || initialBanker >= 8;
+    let playerThird = null;
+    if (!natural && initialPlayer <= 5) {
+      playerThird = dragonDrawRank(counts, rng);
+      player.push(playerThird);
+    }
+    const bankerNeedsCard = !natural && (playerThird == null
+      ? dragonBankerShouldDraw(initialBanker)
+      : dragonBankerShouldDraw(initialBanker, dragonRankValue(playerThird)));
+    if (bankerNeedsCard) banker.push(dragonDrawRank(counts, rng));
+    const playerTotal = dragonTotal(player);
+    const bankerTotal = dragonTotal(banker);
+    const winner = playerTotal === bankerTotal ? 'TIE' : playerTotal > bankerTotal ? 'PLAYER' : 'BANKER';
+    const margin = winner === 'TIE' ? 0 : Math.abs(playerTotal - bankerTotal);
+    return { natural, winner, margin };
+  }
+
+  function dragonBuildSnapshot() {
+    const direction = getDirection();
+    const table = normalizeTableId(state.activeTableId);
+    const shoe = Number(state.shoe);
+    const rounds = [...state.rounds.values()]
+      .map(item => ({ round: Number(item?.roundIndex ?? item?.round), cards: Array.isArray(item?.cards) ? item.cards.map(Number).filter(card => card > 0) : getCards(item?.result) }))
+      .filter(item => Number.isInteger(item.round) && item.cards.length)
+      .sort((a, b) => a.round - b.round);
+    const signature = JSON.stringify({ table, shoe, direction, rounds });
+    return { table, shoe, direction, rounds, signature };
+  }
+
+  function dragonComputeCounts(snapshot) {
+    const usedCounts = Object.fromEntries(DRAGON_RANKS.map(rank => [rank, 0]));
+    for (const item of snapshot.rounds) {
+      for (const card of item.cards) usedCounts[dragonRankFromCardId(card)] += 1;
+    }
+    const remainingCounts = Object.fromEntries(DRAGON_RANKS.map(rank => [rank, 32 - usedCounts[rank]]));
+    const usedCards = Object.values(usedCounts).reduce((sum, value) => sum + value, 0);
+    const remainingCards = Object.values(remainingCounts).reduce((sum, value) => sum + value, 0);
+    const invalid = DRAGON_RANKS.filter(rank => remainingCounts[rank] < 0 || remainingCounts[rank] > 32);
+    if (remainingCards !== 416 - usedCards || invalid.length) throw new Error('Remaining rank-shoe invariant failed');
+    return { usedCounts, remainingCounts, usedCards, remainingCards };
+  }
+
+  function directionDisplayLabel(direction) {
+    return direction === 'PLAYER'
+      ? '閒'
+      : direction === 'BANKER'
+        ? '莊'
+        : '等待';
+  }
+
+  function updateDragonUi(message = null) {
+    if (!panel) return;
+    const probability = panel.querySelector('#bp-dragon-probability');
+    const tier = panel.querySelector('#bp-dragon-tier');
+    const detail = panel.querySelector('#bp-dragon-detail');
+    if (!probability || !tier || !detail) return;
+    const dragon = state.dragon;
+    const direction = getDirection();
+    const ready = dragon.status === 'READY' && dragon.probability !== null;
+    probability.textContent = ready ? `${(dragon.probability * 100).toFixed(2)}%` : direction === 'WAIT' ? 'N/A' : dragon.status === 'RUNNING' ? '…' : 'N/A';
+    tier.textContent = ready ? getDragonTier(direction, dragon.probability) : '';
+    probability.className = `bp-badge ${direction === 'WAIT' ? 'bp-wait-badge' : dragon.status === 'READY' ? 'bp-player-badge' : 'bp-wait-badge'}`;
+    const counts = dragon.remainingCounts || {};
+    detail.innerHTML = `方向：${directionDisplayLabel(direction)}<br>模擬次數：${DRAGON_DEFAULT_COUNT.toLocaleString()}<br>已出牌：${dragon.usedCards} ｜ 剩餘牌：${dragon.remainingCards}<br>A-K: ${DRAGON_RANKS.map(rank => `${rank} ${counts[rank] ?? '—'}`).join(' ｜ ')}${message ? `<br>${message}` : ''}`;
+  }
+
+  function scheduleDragonAnalysis() {
+    const snapshot = dragonBuildSnapshot();
+    const direction = snapshot.direction;
+    if (!snapshot.table || !Number.isFinite(snapshot.shoe)) {
+      state.dragon = { ...state.dragon, signature: null, status: 'WAIT', probability: null, error: null, usedCards: 0, remainingCards: 416, remainingCounts: null };
+      updateDragonUi();
+      return;
+    }
+    if (snapshot.signature === state.dragon.signature) return;
+    const generation = state.dragon.generation + 1;
+    state.dragon = { ...state.dragon, signature: snapshot.signature, generation, status: direction === 'WAIT' ? 'WAIT' : 'RUNNING', probability: null, count: 0, usedCards: 0, remainingCards: 416, remainingCounts: null, byMargin: { 5: 0, 6: 0, 7: 0, 8: 0, 9: 0 }, error: null };
+    try {
+      const counts = dragonComputeCounts(snapshot);
+      state.dragon.usedCards = counts.usedCards;
+      state.dragon.remainingCards = counts.remainingCards;
+      state.dragon.remainingCounts = counts.remainingCounts;
+      if (direction === 'WAIT') { updateDragonUi(); return; }
+      const rng = dragonCreateSeededRng(DRAGON_SEED);
+      const total = DRAGON_DEFAULT_COUNT;
+      const step = () => {
+        if (generation !== state.dragon.generation || snapshot.signature !== state.dragon.signature) return;
+        const end = Math.min(state.dragon.count + 1000, total);
+        while (state.dragon.count < end) {
+          const result = dragonSimulateRoundExact(counts.remainingCounts, rng);
+          if (!result.natural && result.winner === direction && result.margin >= 5 && result.margin <= 9) {
+            state.dragon.probability = (state.dragon.probability || 0) + 1;
+            state.dragon.byMargin[result.margin] += 1;
+          }
+          state.dragon.count += 1;
+        }
+        updateDragonUi(`Calculating ${state.dragon.count.toLocaleString()} / ${total.toLocaleString()}`);
+        if (state.dragon.count < total) {
+          setTimeout(step, 0);
+        } else {
+          state.dragon.probability = (state.dragon.probability || 0) / total;
+          state.dragon.status = 'READY';
+          updateDragonUi();
+        }
+      };
+      updateDragonUi('Calculating…');
+      setTimeout(step, 0);
+    } catch (error) {
+      state.dragon.status = 'ERROR';
+      state.dragon.error = String(error?.message || error);
+      updateDragonUi(`ERROR: ${state.dragon.error}`);
+    }
+  }
+
   // =====================================================
   // show_poker
   // =====================================================
@@ -3058,6 +3488,14 @@
       state.historicalHydrationKey = null;
       state.historicalHydrationRunning = false;
     }
+    state.dragon.signature = null;
+    state.dragon.generation += 1;
+    state.dragon.status = 'WAIT';
+    state.dragon.probability = null;
+    state.pair.signature = null;
+    state.pair.generation += 1;
+    state.pair.status = 'WAIT';
+    state.pair.probability = null;
     state.activeTableId = candidate;
     state.activeTableSource = source;
     dgModelEstimateReset('TABLE_CHANGED');
@@ -4538,6 +4976,58 @@
     } catch (_) {
       return redactText(value).split('?')[0].split('#')[0];
     }
+  }
+
+  function dgExecutionProbeLocation() {
+    try {
+      const url = new URL(location.href);
+      return { origin: url.origin, pathname: url.pathname || '/' };
+    } catch (_) {
+      return { origin: '', pathname: '/' };
+    }
+  }
+
+  function reportDgExecutionProbe() {
+    const host = (() => {
+      try { return String(location.hostname || '').toLowerCase(); } catch (_) { return ''; }
+    })();
+    if (host === 'tz6868.com' || host.endsWith('.tz6868.com')) return;
+
+    const detail = {
+      ...dgExecutionProbeLocation(),
+      inDg: true,
+      loader: Boolean(window.__bp_dg_execution_probe__),
+      runtime: true,
+      observer: Boolean(window.__BP_MT_PAGE_RUNTIME_DEBUG_HOOK__),
+      earlyBridge: Boolean(window[EARLY_STATE_KEY]?.installed),
+      isTop: Boolean(isTopWindow)
+    };
+
+    try {
+      let marker = document.getElementById('__bp_dg_execution_probe__');
+      const root = document.documentElement || document.body;
+      if (root) {
+        if (!marker) {
+          marker = document.createElement('div');
+          marker.id = '__bp_dg_execution_probe__';
+          marker.style.cssText = 'position:fixed;right:8px;top:8px;z-index:2147483646;background:#5b2a86;color:#fff;border:2px solid #fff;border-radius:8px;padding:7px 9px;font:700 11px/1.3 -apple-system,BlinkMacSystemFont,sans-serif;white-space:pre-wrap;max-width:260px;';
+          root.appendChild(marker);
+        }
+        marker.textContent = [
+          'DG EXECUTION PROBE',
+          `LOADER IN DG: ${detail.loader ? 'YES' : 'NO'}`,
+          'RUNTIME IN DG: YES',
+          `DG OBSERVER INSTALLED: ${detail.observer ? 'YES' : 'NO'}`,
+          `DG EARLY BRIDGE INSTALLED: ${detail.earlyBridge ? 'YES' : 'NO'}`
+        ].join('\n');
+      }
+    } catch (_) {}
+
+    try {
+      if (window.opener && window.opener !== window) {
+        window.opener.postMessage({ type: DG_EXECUTION_PROBE_MESSAGE, detail }, '*');
+      }
+    } catch (_) {}
   }
 
   function redactObject(value) {
@@ -6278,6 +6768,93 @@
         ? 'LIVE_ONLY_FALLBACK'
         : association.status || 'UNVERIFIED';
     return JSON.stringify({ exportedAt: new Date().toISOString(), version: 'dg-data-probe-v9.3-storage-lifecycle-marker', note: 'Observer-only. Bounded historical card ancestry, repeated-block structure, live-anchor comparison, prior protocol evidence, and no raw payloads, decoded text, credentials, requests, or WebSocket creation.', frameId: DISCOVERY_FRAME_ID, isTopWindow, ownership: { tableId: normalizeTableId(state.dg.ownership.tableId), source: state.dg.ownership.source || null, socketGeneration: state.dg.ownership.socketGeneration || null, socketIdentity: state.dg.ownership.socketIdentity || null, socketKey: state.dg.ownership.socketKey || null, runtimeInstanceId: state.dg.ownership.runtimeInstanceId || null, sequence: state.dg.ownership.sequence || null, establishedAt: state.dg.ownership.establishedAt || null, controlField1: state.dg.ownership.controlField1 || null, controlField10: state.dg.ownership.controlField10 || null }, lifecycle: { runtimeInstanceId: state.dg.lifecycle.runtimeInstanceId || DISCOVERY_FRAME_ID, activeSocketKey: state.dg.lifecycle.activeSocketKey || null, activeSocketIdentity: state.dg.lifecycle.activeSocketIdentity || null, activeSocketGeneration: state.dg.lifecycle.activeSocketGeneration || null, adoptionCount: state.dg.lifecycle.adoptionCount || 0 }, isTopWindow, initializationObjectAssociationSummary: state.dgDataProbe.initializationObjectAssociationSummary, historicalAssociation: { verifiedLiveTableId: normalizeTableId(state.dg.ownership.tableId), verifiedLiveShoe: state.dg.shoeIdentity || null, verifiedLiveAnchors: state.dgDataProbe.historicalAssociationEvidence.anchors.slice(), historicalCardObjects: state.dgDataProbe.historicalAssociationEvidence.cardObjects.slice(), repeatedBlocks: state.dgDataProbe.historicalAssociationEvidence.blocks.slice(), active: Boolean(state.dgDataProbe.historicalAssociationEvidence.active), frozen: Boolean(state.dgDataProbe.historicalAssociationEvidence.frozen), freezeReason: state.dgDataProbe.historicalAssociationEvidence.freezeReason || null }, initialization: { active: Boolean(capture.active), startedAt: capture.startedAt || null, endsAt: capture.endsAt || null, websocketUrl: capture.websocketUrl || '', frameCount: capture.frameCount || 0, openCount: capture.openCount || 0, processSequence: capture.processSequence || 0, completeObserved: Boolean(capture.completeObserved), stopReason: capture.stopReason || null, firstDispatch: capture.firstDispatch || null }, evidence: { initializationObjectAssociationEvidence: state.dgDataProbe.initializationObjectAssociationEvidence.slice(), nativeRecordRequestEvidence: state.nativeRecordRequestEvidence.slice(), backendIdentityAssociationEvidence: state.dgDataProbe.backendIdentityAssociationEvidence.slice(), historicalHydrationTrace: state.historicalHydrationTrace.slice(-64), dgPersistenceEvidence: state.dgDataProbe.dgPersistenceEvidence.slice(-64), dgCanonicalOwnerEvidence: state.dgDataProbe.dgCanonicalOwnerEvidence.slice(-64), dgStorageMarkerEvidence: state.dgDataProbe.dgStorageMarkerEvidence.slice(-8), trustedRoomIdentityEvidence: state.dgDataProbe.trustedRoomIdentityEvidence.slice(), recordOutboundSourceEvidence: state.dgDataProbe.recordOutboundSourceEvidence.slice(), dgNativeRoadCommandEvidence: state.dgDataProbe.dgNativeRoadCommandEvidence.slice(), dgRoadStatEvidence: state.dgDataProbe.dgRoadStatEvidence.slice(), dgRoadResultEvidence: state.dgDataProbe.dgRoadResultEvidence.slice(), dgRoadObserverDiagnostics: { ...state.dgDataProbe.dgRoadObserverDiagnostics, reasons: state.dgDataProbe.dgRoadObserverDiagnostics.reasons.slice(-16) }, roomAssociationDiscovery: { jsonMetadata: state.dgDataProbe.roomAssociationDiscovery.jsonMetadata.slice(), dgBinaryMetadata: state.dgDataProbe.roomAssociationDiscovery.dgBinaryMetadata.slice() }, dispatchEvidence: state.dgDataProbe.dispatchEvidence.slice(), completeCandidates: state.dgDataProbe.completeCandidates.slice(), initializationCompleteCandidates: state.dgDataProbe.initializationCompleteCandidates.slice(), modelEstimate: { tableId: state.modelEstimate.tableId, shoeIdentity: state.modelEstimate.shoeIdentity, candidateRoundCount: state.modelEstimate.candidateRoundCount, initialCount: state.modelEstimate.initialCount, baselineRoundCount: state.modelEstimate.baselineRoundCount, baselineValue: state.modelEstimate.baselineValue, liveDelta: state.modelEstimate.liveDelta, estimatedCount: dgModelEstimateValue(), initialized: Boolean(state.modelEstimate.initialized), status: state.modelEstimate.status, countedLiveRounds: state.modelEstimate.countedRoundKeys.size, roadEntries: state.modelEstimate.roadEntries.slice(-64), liveDeltas: state.modelEstimate.liveDeltas.slice(-64), liveOutcomeEvents: state.modelEstimate.liveOutcomeEvents.slice(-64), roadHistoryAssociation: { status: association.status || 'UNVERIFIED', failureReason: association.failureReason || null, tableId: association.tableId || null, shoeIdentity: association.shoeIdentity || null, liveRoundIdentity: association.liveRoundIdentity || null, baselineReceivedOrder: association.baselineReceivedOrder || null, verifiedSnapshotReceivedOrder: association.verifiedSnapshotReceivedOrder || null, liveInclusionEvidence: association.liveInclusionEvidence || (association.status === 'VERIFIED_LIVE_TO_ROAD_HEAD_INSERT' ? 'ALREADY_INCLUDED' : 'UNKNOWN'), recentOutcomes: Array.isArray(association.recentOutcomes) ? association.recentOutcomes.slice() : [] }, recentOutcomeSource, preEntryHistoryReliable: ['VERIFIED_LIVE_TO_ROAD_HEAD_INSERT', 'DIRECT_NATIVE_ROAD_SNAPSHOT'].includes(recentOutcomeSource), recentOutcomes: dgModelEstimateRecentOutcomes() }, roundEvolution: state.dgDataProbe.roundEvolution.slice(), objectSelectionEvidence: state.dgDataProbe.objectSelectionEvidence.slice(), largeFrameStructures: state.dgDataProbe.largeFrameStructures.slice(), binaryFramingEvidence: state.dgDataProbe.binaryFramingEvidence.slice(), embeddedObjectEvidence: state.dgDataProbe.embeddedObjectEvidence.slice(), selectedObjectEvidence: state.dgDataProbe.selectedObjectEvidence.slice(), cardProgressionEvidence: state.dgDataProbe.cardProgressionEvidence.slice(), sharedStateCorrelation: state.dgDataProbe.sharedStateCorrelation.slice(), outboundWebSocketFrameEvidence: state.dgDataProbe.outboundWebSocketFrameEvidence.slice(), dgCurrentTableUiEvidence: state.dgDataProbe.dgCurrentTableUiEvidence.slice(), dgTableSelectionEvidence: state.dgDataProbe.dgTableSelectionEvidence.slice(), dgTableSelectionCorrelationEvidence: state.dgDataProbe.dgTableSelectionCorrelationEvidence.slice(), dgProtocolTransitionEvidence: state.dgDataProbe.dgProtocolTransitionEvidence.slice(), dgCardStreamCorrelationEvidence: state.dgDataProbe.dgCardStreamCorrelationEvidence.slice(), dgInboundCardParentEnvelopeEvidence: state.dgDataProbe.dgInboundCardParentEnvelopeEvidence.slice(), dgInboundCardParentEnvelopeFirstSeenEvidence: state.dgDataProbe.dgInboundCardParentEnvelopeFirstSeenEvidence.slice(), dgProtocolUiEvidence: state.dgDataProbe.dgProtocolUiEvidence.slice() }, records: state.dgDataProbe.records.slice(-300) }, null, 2);
+  }
+
+  function showDgDataDebugOverlay() {
+    const existing = document.getElementById('bp-dg-data-debug-overlay');
+    if (existing) { existing.remove(); return; }
+    const overlay = document.createElement('div');
+    overlay.id = 'bp-dg-data-debug-overlay';
+    overlay.style.cssText = 'position:fixed;inset:4vh 4vw;z-index:2147483647;background:#07131d;color:#d9f3ff;border:2px solid #2f9ac0;border-radius:10px;padding:10px;box-shadow:0 8px 30px #000c;display:flex;flex-direction:column;gap:8px;font:12px -apple-system,BlinkMacSystemFont,sans-serif';
+    const title = document.createElement('div');
+    title.textContent = 'DG DATA DEBUG';
+    title.style.cssText = 'font-weight:800;font-size:16px';
+    const textarea = document.createElement('textarea');
+    textarea.readOnly = true;
+    textarea.value = dgDataProbeText();
+    textarea.style.cssText = 'width:100%;height:65vh;box-sizing:border-box;background:#02080d;color:#d9f3ff;border:1px solid #456278;border-radius:6px;padding:8px;resize:none;overflow:auto;font:11px ui-monospace,SFMono-Regular,monospace';
+    const buttons = document.createElement('div');
+    buttons.style.cssText = 'display:flex;gap:8px';
+    const copy = document.createElement('button');
+    copy.type = 'button';
+    copy.textContent = '複製 DG DATA';
+    copy.style.cssText = 'flex:1;padding:8px;border:1px solid #456278;border-radius:7px;background:#172b3b;color:#cfe7f5;font-weight:800';
+    copy.addEventListener('click', async () => {
+      const text = dgDataProbeText();
+      let copied = false;
+      try { await navigator.clipboard?.writeText?.(text); copied = true; } catch (_) {}
+      if (!copied) { try { textarea.focus(); textarea.select(); copied = Boolean(document.execCommand('copy')); } catch (_) {} }
+      copy.textContent = copied ? '已複製 DG DATA' : '複製失敗';
+    });
+    const close = document.createElement('button');
+    close.type = 'button';
+    close.textContent = '關閉';
+    close.style.cssText = 'padding:8px 14px;border:1px solid #456278;border-radius:7px;background:#172b3b;color:#cfe7f5;font-weight:800';
+    close.addEventListener('click', () => overlay.remove());
+    buttons.append(copy, close);
+    overlay.append(title, textarea, buttons);
+    (document.documentElement || document.body).appendChild(overlay);
+  }
+
+  function addDgDataDebugButton(buttonGroup) {
+    if (!buttonGroup || buttonGroup.querySelector('#bp-dg-data-debug')) return;
+    const button = document.createElement('button');
+    button.id = 'bp-dg-data-debug';
+    button.type = 'button';
+    button.textContent = 'DG DATA DEBUG';
+    button.style.cssText = 'width:100%;margin-top:6px;padding:7px;border:1px solid #456278;border-radius:7px;background:#172b3b;color:#cfe7f5;font-weight:800;cursor:pointer';
+    button.addEventListener('click', showDgDataDebugOverlay);
+    buttonGroup.appendChild(button);
+  }
+
+  let dgDataDebugFloatingTimer = null;
+  function installStandaloneDgDataDebugButton() {
+    if (!isTopWindow || typeof document === 'undefined') return;
+
+    const ensureButton = () => {
+      if (!document.body) return false;
+      const existing = document.getElementById('bp-dg-data-debug-floating');
+      if (existing && typeof document.body.contains === 'function' && document.body.contains(existing)) return true;
+
+      const button = document.createElement('button');
+      button.id = 'bp-dg-data-debug-floating';
+      button.type = 'button';
+      button.textContent = 'DG DATA DEBUG';
+      if (typeof button.setAttribute === 'function') button.setAttribute('aria-label', 'DG DATA DEBUG');
+      button.style.cssText = 'position:fixed;right:10px;bottom:10px;z-index:2147483646;padding:9px 12px;border:2px solid #fff;border-radius:8px;background:#7b1fa2;color:#fff;font:700 13px -apple-system,BlinkMacSystemFont,sans-serif;box-shadow:0 3px 12px #0009;cursor:pointer';
+      button.addEventListener('click', showDgDataDebugOverlay);
+      document.body.appendChild(button);
+      return true;
+    };
+
+    if (!ensureButton()) {
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', installStandaloneDgDataDebugButton, { once: true });
+      }
+      return;
+    }
+
+    if (dgDataDebugFloatingTimer !== null) return;
+    let checksRemaining = 10;
+    dgDataDebugFloatingTimer = setInterval(() => {
+      if (checksRemaining <= 0) {
+        clearInterval(dgDataDebugFloatingTimer);
+        dgDataDebugFloatingTimer = null;
+        return;
+      }
+      checksRemaining -= 1;
+      ensureButton();
+    }, 1000);
   }
 
   function firstValue(object, keys) {
@@ -9275,11 +9852,6 @@
       dgModelEstimateReset('SHOE_CHANGED', retainedPendingSnapshots);
       dgModelEstimateBindPendingRoadSnapshots(normalizeTableId(decoded.tableId), incomingShoe);
       state.dg.rounds.clear();
-      state.rounds.clear();
-      state.runningCount = 0;
-      state.lastFive = [];
-      state.dg.lastFrame = null;
-      render();
       state.dgCanonicalOwner.requestKey = null;
       state.dgCanonicalOwner.requestId = null;
       state.dgCanonicalOwner.responseAccepted = false;
@@ -9792,8 +10364,11 @@
   installDgCurrentTableUiObserver();
   installDgTableSelectionObserver();
   installDgRoadStatObserver();
+  reportDgExecutionProbe();
+
   // document-start, DOM ready, and load cover Safari's first navigation and
   // MT SPA/iframe creation timing without touching the WebSocket/counting flow.
+  installStandaloneDgDataDebugButton();
   scheduleBootstrap();
   document.addEventListener('DOMContentLoaded', scheduleBootstrap, { once: true });
   window.addEventListener('load', scheduleBootstrap, { once: true });
