@@ -20,8 +20,10 @@
   // Reject unrelated documents before any DOM, timer, network, storage,
   // navigation, or WebSocket side effect occurs.
   const currentHost = String(location.hostname || '').toLowerCase();
-  const isAllowedTzHost = false;
-  const isAllowedOfaliveHost = false;
+  const isAllowedTzHost =
+    currentHost === 'tz6868.com' || currentHost.endsWith('.tz6868.com');
+  const isAllowedOfaliveHost =
+    currentHost === 'ofalive99.net' || currentHost.endsWith('.ofalive99.net');
   const isAllowedDgHost =
     currentHost.startsWith('new-dd-cn.') &&
     currentHost.length > 'new-dd-cn.'.length &&
@@ -29,6 +31,33 @@
   if (!isAllowedTzHost && !isAllowedOfaliveHost && !isAllowedDgHost) {
     return;
   }
+
+  // Isolate the formal candidate from any previously installed DG test UI.
+  // This removes only known diagnostic/test panels; it does not touch sockets,
+  // runtime state, or the production MT surface.
+  const LEGACY_DG_PANEL_IDS = [
+    'baccarat-pulse-dg-candidate-diagnostic-loader-panel-v100',
+    'baccarat-pulse-dg-candidate-diagnostic-panel-v100',
+    'baccarat-pulse-dg-production-candidate-panel-v200',
+    'baccarat-pulse-dg-dynamic-ai-test-panel-v100',
+    'baccarat-pulse-dg-dynamic-ai-diagnostic-panel-v100',
+    'baccarat-pulse-dg-diagnostic-panel-v100',
+    'baccarat-pulse-dg-match-test-panel-v100',
+    'baccarat-pulse-dg-dynamic-fingerprint-test-panel-v202',
+    'baccarat-pulse-dg-dynamic-match-test-panel-v100',
+    '__bp_dg_execution_probe__',
+    '__bp_loader_boot_probe__'
+  ];
+  const removeLegacyDgPanels = () => {
+    try {
+      for (const id of LEGACY_DG_PANEL_IDS) document.getElementById(id)?.remove();
+    } catch (_) {}
+  };
+  removeLegacyDgPanels();
+  try {
+    const legacyPanelObserver = new MutationObserver(removeLegacyDgPanels);
+    legacyPanelObserver.observe(document.documentElement || document, { childList: true, subtree: true });
+  } catch (_) {}
 
   const RUNTIME_URL =
     'https://baccarat-pulse-dg-formal-test-5f978b0.onrender.com/BaccaratPulse-DG-formal-5f978b0-runtime.js';
